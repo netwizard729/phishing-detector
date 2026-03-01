@@ -1,0 +1,154 @@
+{
+  "model_name": "Gradient Boosting",
+  "accuracy": 0.90775,
+  "precision": 0.913749,
+  "recall": 0.9005,
+  "f1_score": 0.907076,
+  "roc_auc": 0.968093,
+  "cv_mean": 0.905,
+  "cv_std": 0.003987,
+  "confusion_matrix": [
+    [
+      1830,
+      170
+    ],
+    [
+      199,
+      1801
+    ]
+  ],
+  "train_time_s": 2.47,
+  "feature_importance": [
+    {
+      "feature": "is_trusted_tld",
+      "importance": 0.127451
+    },
+    {
+      "feature": "num_phishing_keywords",
+      "importance": 0.067817
+    },
+    {
+      "feature": "path_entropy",
+      "importance": 0.067408
+    },
+    {
+      "feature": "has_php_extension",
+      "importance": 0.065212
+    },
+    {
+      "feature": "num_digits_url",
+      "importance": 0.056508
+    },
+    {
+      "feature": "vowel_ratio_domain",
+      "importance": 0.046963
+    },
+    {
+      "feature": "num_hyphens",
+      "importance": 0.045633
+    },
+    {
+      "feature": "digit_ratio_url",
+      "importance": 0.040476
+    },
+    {
+      "feature": "path_length",
+      "importance": 0.039333
+    },
+    {
+      "feature": "domain_length",
+      "importance": 0.039319
+    },
+    {
+      "feature": "num_dots",
+      "importance": 0.030286
+    },
+    {
+      "feature": "has_login_keyword",
+      "importance": 0.030121
+    },
+    {
+      "feature": "url_length",
+      "importance": 0.029404
+    },
+    {
+      "feature": "path_depth",
+      "importance": 0.028876
+    },
+    {
+      "feature": "num_slashes",
+      "importance": 0.027096
+    },
+    {
+      "feature": "query_length",
+      "importance": 0.026602
+    },
+    {
+      "feature": "url_entropy",
+      "importance": 0.023239
+    },
+    {
+      "feature": "num_underscores",
+      "importance": 0.021417
+    },
+    {
+      "feature": "domain_entropy",
+      "importance": 0.021374
+    },
+    {
+      "feature": "hostname_length",
+      "importance": 0.019614
+    }
+  ],
+  "feature_names": [
+    "url_length",
+    "domain_length",
+    "path_length",
+    "query_length",
+    "subdomain_length",
+    "hostname_length",
+    "num_dots",
+    "num_hyphens",
+    "num_underscores",
+    "num_slashes",
+    "num_question_marks",
+    "num_equal_signs",
+    "num_at_signs",
+    "num_ampersands",
+    "num_percent",
+    "num_hash",
+    "num_digits_url",
+    "num_digits_domain",
+    "is_https",
+    "has_ip",
+    "has_at_sign",
+    "has_double_slash_redirect",
+    "has_prefix_suffix",
+    "subdomain_count",
+    "is_shortened_url",
+    "is_suspicious_tld",
+    "is_trusted_tld",
+    "brand_in_subdomain",
+    "num_phishing_keywords",
+    "has_login_keyword",
+    "has_secure_keyword",
+    "has_verify_keyword",
+    "has_account_keyword",
+    "url_entropy",
+    "domain_entropy",
+    "path_entropy",
+    "digit_ratio_url",
+    "digit_ratio_domain",
+    "longest_word_domain",
+    "vowel_ratio_domain",
+    "num_query_params",
+    "path_depth",
+    "has_port",
+    "has_php_extension",
+    "has_html_extension",
+    "has_exe_extension"
+  ],
+  "num_features": 46,
+  "saved_at": "2026-03-01T18:16:25.414308",
+  "model_file": "/home/czar/Music/Phishing url detector/files/model/saved_models/gradient_boosting.pkl"
+}

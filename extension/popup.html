@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phishing URL Detector</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --safe:#38a169; --low:#d69e2e; --medium:#ed8936; --high:#e53e3e;
+      --bg:#f7fafc; --card:#fff; --text:#2d3748; --muted:#718096;
+      --border:#e2e8f0; --blue:#3182ce;
+    }
+    body {
+      width:360px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg); color:var(--text); font-size:13px;
+    }
+
+    /* HEADER */
+    .header {
+      background:linear-gradient(135deg,#1a365d,#2b6cb0);
+      color:white; padding:12px 14px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .header-left { display:flex; align-items:center; gap:9px; }
+    .header-icon { font-size:20px; }
+    .header-text h1 { font-size:13px; font-weight:700; }
+    .header-text p  { font-size:10px; opacity:.7; margin-top:1px; }
+    .header-right   { display:flex; gap:6px; }
+    .icon-btn {
+      background:rgba(255,255,255,.15); border:none; color:white;
+      width:30px; height:30px; border-radius:6px; font-size:15px;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:background .2s;
+    }
+    .icon-btn:hover { background:rgba(255,255,255,.3); }
+
+    /* SCANNING BAR */
+    .scan-bar {
+      background:#ebf8ff; border-bottom:1px solid #bee3f8;
+      padding:5px 14px; font-size:10px; color:#2b6cb0;
+      display:flex; align-items:center; gap:6px;
+    }
+    .scan-bar.hidden { display:none; }
+    .dot { width:7px; height:7px; border-radius:50%; background:#3182ce; animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+    /* RESULT CARD */
+    .card {
+      margin:10px 12px; border-radius:10px;
+      border:1px solid var(--border); background:var(--card);
+      box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden;
+    }
+    .banner { padding:12px 14px; display:flex; align-items:center; gap:10px; }
+    .banner.safe   { background:#f0fff4; border-left:4px solid var(--safe); }
+    .banner.low    { background:#fffff0; border-left:4px solid var(--low);  }
+    .banner.medium { background:#fffaf0; border-left:4px solid var(--medium);}
+    .banner.high   { background:#fff5f5; border-left:4px solid var(--high); }
+    .banner.unknown{ background:#f7fafc; border-left:4px solid #cbd5e0;     }
+    .b-icon  { font-size:26px; line-height:1; }
+    .b-label { font-size:15px; font-weight:700; }
+    .b-sub   { font-size:10px; color:var(--muted); margin-top:2px; }
+    .safe   .b-label { color:var(--safe); }
+    .low    .b-label { color:var(--low);  }
+    .medium .b-label { color:var(--medium); }
+    .high   .b-label { color:var(--high); }
+    .unknown .b-label{ color:var(--muted); }
+
+    /* PROB BAR */
+    .prob { padding:8px 14px 10px; border-top:1px solid var(--border); }
+    .prob-row { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-bottom:4px; }
+    .prob-val { font-weight:700; color:var(--text); }
+    .track { height:7px; background:#e2e8f0; border-radius:4px; overflow:hidden; }
+    .fill  { height:100%; border-radius:4px; transition:width .5s ease; }
+    .fill-safe{background:var(--safe)} .fill-low{background:var(--low)}
+    .fill-medium{background:var(--medium)} .fill-high{background:var(--high)}
+
+    /* URL BOX */
+    .url-box {
+      margin:0 12px 8px; padding:7px 10px;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:6px; font-size:10px; color:var(--muted);
+      word-break:break-all; line-height:1.5;
+    }
+    .url-box strong { color:var(--text); display:block; margin-bottom:2px; }
+
+    /* SIGNALS */
+    .signals { margin:0 12px 8px; }
+    .sig-title {
+      font-size:10px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;
+    }
+    .sig-item { display:flex; gap:5px; font-size:11px; padding:2px 0; }
+    .sig-dot { color:var(--high); flex-shrink:0; }
+    .sig-ok  { color:var(--safe); }
+
+    /* CHECK ROW */
+    .check-row { margin:0 12px 8px; display:flex; gap:6px; }
+    .check-input {
+      flex:1; padding:7px 10px; border:1px solid var(--border);
+      border-radius:6px; font-size:12px; outline:none; transition:border-color .2s;
+    }
+    .check-input:focus { border-color:var(--blue); }
+    .check-btn {
+      padding:7px 13px; background:var(--blue); color:white;
+      border:none; border-radius:6px; font-size:12px;
+      font-weight:600; cursor:pointer; white-space:nowrap;
+    }
+    .check-btn:hover    { background:#2c5282; }
+    .check-btn:disabled { background:#a0aec0; cursor:not-allowed; }
+
+    /* STATS */
+    .stats {
+      display:flex; justify-content:space-around; padding:7px 12px;
+      background:var(--card); border-top:1px solid var(--border);
+    }
+    .stat { text-align:center; }
+    .stat-n { font-size:15px; font-weight:800; }
+    .stat-l { font-size:9px; color:var(--muted); text-transform:uppercase; margin-top:1px; }
+    .n-total { color:var(--blue); }
+    .n-phish { color:var(--high); }
+    .n-safe  { color:var(--safe); }
+
+    /* FOOTER */
+    .footer {
+      text-align:center; padding:5px 12px 8px;
+      font-size:10px; color:var(--muted); border-top:1px solid var(--border);
+    }
+    .footer button {
+      color:var(--blue); cursor:pointer; background:none;
+      border:none; font-size:10px; text-decoration:underline; padding:0;
+    }
+
+    /* LOADER */
+    .loader {
+      display:flex; align-items:center; justify-content:center;
+      gap:8px; padding:22px; color:var(--muted); font-size:12px;
+    }
+    .spinner {
+      width:16px; height:16px; border:2px solid #e2e8f0;
+      border-top-color:var(--blue); border-radius:50%;
+      animation:spin .7s linear infinite; flex-shrink:0;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* NOTICES */
+    .notice {
+      margin:10px 12px; padding:10px 12px;
+      border-radius:8px; font-size:11px; line-height:1.6;
+    }
+    .notice.warn  { background:#fff8e1; border:1px solid #fdd835; color:#744210; }
+    .notice.error { background:#fff5f5; border:1px solid #fed7d7; color:#c53030; }
+    .notice strong { display:block; margin-bottom:3px; font-size:12px; }
+    code {
+      background:rgba(0,0,0,.08); padding:2px 5px;
+      border-radius:3px; font-size:10px; font-family:monospace;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-icon">🛡️</div>
+    <div class="header-text">
+      <h1>Phishing URL Detector</h1>
+      <p><span id="apiLabel">checking API…</span></p>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" id="rescanBtn" title="Re-scan">🔄</button>
+    <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+  </div>
+</div>
+
+<!-- SCANNING BAR -->
+<div class="scan-bar hidden" id="scanBar">
+  <div class="dot"></div>
+  <span id="scanText">Scanning…</span>
+</div>
+
+<!-- RESULT -->
+<div id="main">
+  <div class="loader"><div class="spinner"></div> Loading…</div>
+</div>
+
+<!-- MANUAL CHECK -->
+<div class="check-row">
+  <input class="check-input" id="urlInput" placeholder="Enter any URL to check…" />
+  <button class="check-btn" id="checkBtn">Check</button>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-n n-total" id="sTotal">0</div>
+    <div class="stat-l">Scanned</div>
+  </div>
+  <div class="stat">
+    <div class="stat-n n-phish" id="sPhish">0</div>
+    <div class="stat-l">Phishing</div>
+  </div>
+  <div class="stat">
+    <div class="stat-n n-safe" id="sSafe">0</div>
+    <div class="stat-l">Safe</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <button id="settingsFooterBtn">⚙ Settings</button>
+  &nbsp;·&nbsp; CCS/00056/022
+</div>
+
+<!-- External script — no inline JS -->
+<script src="popup.js"></script>
+</body>
+</html>

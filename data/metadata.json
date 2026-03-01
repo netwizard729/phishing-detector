@@ -1,0 +1,11 @@
+{
+  "total": 20000,
+  "train": 16000,
+  "test": 4000,
+  "phishing_train": 8000,
+  "legit_train": 8000,
+  "phishing_test": 2000,
+  "legit_test": 2000,
+  "source": "kaggle",
+  "created_at": "2026-03-01T18:17:05.861680"
+}

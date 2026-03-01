@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phishing Detector — Settings</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --blue:#2b6cb0; --green:#38a169; --red:#e53e3e; --orange:#ed8936;
+      --yellow:#d69e2e; --bg:#f0f4f8; --card:#ffffff;
+      --text:#2d3748; --muted:#718096; --border:#e2e8f0;
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
+
+    .header {
+      background:linear-gradient(135deg,#1a365d,#2b6cb0); color:white;
+      padding:20px 32px; display:flex; align-items:center; gap:14px;
+      box-shadow:0 2px 10px rgba(0,0,0,.2);
+    }
+    .header-icon { font-size:32px; }
+    .header h1 { font-size:20px; font-weight:800; }
+    .header p  { font-size:12px; opacity:.75; margin-top:3px; }
+
+    .container { max-width:700px; margin:28px auto; padding:0 20px 80px; }
+
+    .section { background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:20px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+    .sec-hdr  { padding:14px 20px; background:#f7fafc; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+    .sec-hdr h2 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+
+    .row { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f0f4f8; gap:16px; }
+    .row:last-child { border-bottom:none; }
+    .row-info { flex:1; }
+    .row-label { font-size:14px; font-weight:600; }
+    .row-desc  { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4; }
+
+    /* Toggle */
+    .toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#cbd5e0; border-radius:24px; cursor:pointer; transition:.25s; }
+    .slider::before { content:""; position:absolute; width:18px; height:18px; left:3px; top:3px; background:white; border-radius:50%; transition:.25s; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+    .toggle input:checked + .slider { background:var(--blue); }
+    .toggle input:checked + .slider::before { transform:translateX(20px); }
+
+    /* Select */
+    .sel { padding:7px 12px; border:1px solid var(--border); border-radius:7px; background:white; font-size:13px; color:var(--text); cursor:pointer; outline:none; min-width:140px; }
+    .sel:focus { border-color:var(--blue); }
+
+    /* Slider */
+    .slider-wrap { display:flex; align-items:center; gap:10px; min-width:180px; }
+    .range { flex:1; -webkit-appearance:none; height:5px; border-radius:3px; background:#e2e8f0; outline:none; }
+    .range::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--blue); cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+    .range-val { font-weight:800; font-size:14px; color:var(--blue); min-width:38px; text-align:right; }
+
+    /* Threshold preview */
+    .thresh-preview { display:flex; gap:6px; margin:0 20px 14px; flex-wrap:wrap; }
+    .tp { flex:1; min-width:90px; padding:10px; border-radius:8px; text-align:center; font-size:11px; border:1.5px solid; }
+    .tp .tp-r { font-weight:800; font-size:13px; margin-bottom:2px; }
+    .tp.safe   { background:#f0fff4; border-color:#c6f6d5; color:var(--green); }
+    .tp.low    { background:#fffff0; border-color:#faf089; color:var(--yellow); }
+    .tp.medium { background:#fffaf0; border-color:#fbd38d; color:var(--orange); }
+    .tp.high   { background:#fff5f5; border-color:#fed7d7; color:var(--red); }
+
+    /* API row */
+    .api-row { display:flex; gap:8px; padding:14px 20px; align-items:center; }
+    .api-inp { flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:7px; font-size:13px; outline:none; }
+    .api-inp:focus { border-color:var(--blue); }
+    .test-btn { padding:8px 14px; background:var(--blue); color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .test-btn:hover { background:#2c5282; }
+    .api-status { font-size:11px; padding:0 20px 12px; }
+
+    /* Whitelist */
+    .wl-area { padding:0 20px 16px; }
+    .wl-row  { display:flex; gap:8px; margin-bottom:10px; }
+    .wl-inp  { flex:1; padding:8px 12px; border:1px solid var(--border); border-radius:7px; font-size:13px; outline:none; }
+    .wl-inp:focus { border-color:var(--green); }
+    .wl-add  { padding:8px 14px; background:var(--green); color:white; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; }
+    .wl-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .wl-tag  { display:flex; align-items:center; gap:5px; background:#ebf8ff; border:1px solid #bee3f8; border-radius:20px; padding:4px 10px; font-size:12px; color:#2b6cb0; }
+    .wl-remove { cursor:pointer; color:#a0aec0; font-size:14px; background:none; border:none; padding:0; line-height:1; }
+    .wl-remove:hover { color:var(--red); }
+    .wl-empty { font-size:12px; color:var(--muted); font-style:italic; }
+
+    /* Save bar */
+    .save-bar { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid var(--border); padding:14px 32px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 -2px 12px rgba(0,0,0,.08); }
+    .save-msg { font-size:13px; color:var(--muted); }
+    .save-msg.saved { color:var(--green); font-weight:700; }
+    .save-btn  { padding:10px 28px; background:var(--blue); color:white; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+    .save-btn:hover { background:#2c5282; }
+    .reset-btn { padding:10px 18px; background:white; color:var(--muted); border:1px solid var(--border); border-radius:8px; font-size:13px; cursor:pointer; margin-right:10px; }
+    .reset-btn:hover { color:var(--red); border-color:var(--red); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🛡️</div>
+  <div>
+    <h1>Phishing Detector — Settings</h1>
+    <p>Customise detection sensitivity and extension behaviour</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- DETECTION SENSITIVITY -->
+  <div class="section">
+    <div class="sec-hdr"><span>🎯</span><h2>Detection Sensitivity</h2></div>
+    <div class="row">
+      <div class="row-info">
+        <div class="row-label">Phishing Alert Threshold</div>
+        <div class="row-desc">URLs scoring above this % are flagged. Lower = more sensitive. Higher = fewer false positives.</div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" class="range" id="thresholdSlider" min="30" max="95" step="5" value="55">
+        <div class="range-val" id="thresholdVal">55%</div>
+      </div>
+    </div>
+    <div class="thresh-preview">
+      <div class="tp safe">  <div class="tp-r" id="safeRange">0–54%</div>SAFE</div>
+      <div class="tp low">   <div class="tp-r" id="lowRange">55–69%</div>LOW</div>
+      <div class="tp medium"><div class="tp-r" id="medRange">70–84%</div>MEDIUM</div>
+      <div class="tp high">  <div class="tp-r" id="highRange">85–100%</div>HIGH</div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="section">
+    <div class="sec-hdr"><span>🔔</span><h2>Alerts & Notifications</h2></div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Warning Banner on Page</div><div class="row-desc">Show a red banner at the top of HIGH-risk pages.</div></div>
+      <label class="toggle"><input type="checkbox" id="showBanner" checked><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Desktop Notifications</div><div class="row-desc">Show a system notification for HIGH-risk sites.</div></div>
+      <label class="toggle"><input type="checkbox" id="showNotif" checked><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Alert on MEDIUM Risk Too</div><div class="row-desc">Also show banner for MEDIUM risk, not just HIGH.</div></div>
+      <label class="toggle"><input type="checkbox" id="alertMedium"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Minimum Badge Risk Level</div><div class="row-desc">Only colour the badge when risk is at or above this level.</div></div>
+      <select class="sel" id="minBadgeRisk">
+        <option value="all">All (always)</option>
+        <option value="low">LOW and above</option>
+        <option value="medium" selected>MEDIUM and above</option>
+        <option value="high">HIGH only</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- SCANNING -->
+  <div class="section">
+    <div class="sec-hdr"><span>🔍</span><h2>Scanning Behaviour</h2></div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Auto-scan Every Page</div><div class="row-desc">Automatically scan each page you navigate to.</div></div>
+      <label class="toggle"><input type="checkbox" id="autoScan" checked><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Scan on URL Change (SPA)</div><div class="row-desc">Scan when URL changes without a full reload (React, Vue, Angular).</div></div>
+      <label class="toggle"><input type="checkbox" id="scanOnChange" checked><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Cache Duration</div><div class="row-desc">Reuse results for the same URL within this window.</div></div>
+      <select class="sel" id="cacheDuration">
+        <option value="0">No cache</option>
+        <option value="5">5 minutes</option>
+        <option value="10" selected>10 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="60">1 hour</option>
+      </select>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Skip HTTPS Sites</div><div class="row-desc">Don't scan HTTPS sites (reduces checks, may miss some phishing).</div></div>
+      <label class="toggle"><input type="checkbox" id="skipHttps"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <!-- WHITELIST -->
+  <div class="section">
+    <div class="sec-hdr"><span>✅</span><h2>Trusted Domains (Whitelist)</h2></div>
+    <div class="row" style="border-bottom:1px solid #f0f4f8">
+      <div class="row-info"><div class="row-label">Never scan these domains</div><div class="row-desc">Always treated as safe.</div></div>
+    </div>
+    <div class="wl-area">
+      <div class="wl-row">
+        <input class="wl-inp" id="wlInput" type="text" placeholder="e.g. mybank.co.ke" />
+        <button class="wl-add" id="wlAddBtn">+ Add</button>
+      </div>
+      <div class="wl-tags" id="wlTags"></div>
+    </div>
+  </div>
+
+  <!-- API -->
+  <div class="section">
+    <div class="sec-hdr"><span>🔌</span><h2>API Connection</h2></div>
+    <div class="api-row">
+      <input class="api-inp" id="apiUrl" type="text" value="http://localhost:5000/api" />
+      <button class="test-btn" id="testApiBtn">Test</button>
+    </div>
+    <div class="api-status" id="apiStatus"></div>
+  </div>
+
+  <!-- PRIVACY -->
+  <div class="section">
+    <div class="sec-hdr"><span>🔒</span><h2>Privacy</h2></div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Save Scan History</div><div class="row-desc">Keep a local log of scanned URLs (stored on this device only).</div></div>
+      <label class="toggle"><input type="checkbox" id="saveHistory"><span class="slider"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-info"><div class="row-label">Send Anonymous Usage Stats</div><div class="row-desc">Share anonymised detection counts to help improve the model.</div></div>
+      <label class="toggle"><input type="checkbox" id="sendStats"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div style="height:70px"></div>
+</div>
+
+<!-- SAVE BAR -->
+<div class="save-bar">
+  <div class="save-msg" id="saveMsg">Changes apply immediately after saving.</div>
+  <div>
+    <button class="reset-btn" id="resetBtn">Reset Defaults</button>
+    <button class="save-btn"  id="saveBtn">Save Settings</button>
+  </div>
+</div>
+
+<!-- External script — no inline JS -->
+<script src="settings.js"></script>
+</body>
+</html>

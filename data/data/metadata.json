@@ -1,0 +1,10 @@
+{
+  "total": 549346,
+  "train": 439476,
+  "test": 109870,
+  "phishing_train": 125137,
+  "legit_train": 314339,
+  "phishing_test": 31285,
+  "legit_test": 78585,
+  "created_at": "2026-03-01T14:06:40.629870"
+}

@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Phishing URL Detector",
+  "version": "2.0.0",
+  "description": "Real-time ML phishing detection. Auto-scans every page including single-page apps. Customisable via Settings.",
+  "author": "Caeser Mwania Mwathe — Maseno University",
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "notifications"
+  ],
+
+  "host_permissions": ["<all_urls>"],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "32":  "icons/icon32.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Phishing URL Detector"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "options_page": "settings.html",
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "32":  "icons/icon32.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
