@@ -1,8 +1,7 @@
 /**
- * Background Service Worker — Phishing URL Detector v3
- * Fully fixed: proper async, auto-scan on every navigation, badge updates
+ * Background Service Worker — Phishing URL Detector v4
+ * Fixed: always reads API URL from storage before making any request
  */
-const DEFAULT_API = "https://phishing-detector-i0pb.onrender.com/api";
 
 let SETTINGS = {
   threshold:    55,
@@ -15,20 +14,35 @@ let SETTINGS = {
   cacheDuration: 10,
   skipHttps:    false,
   whitelist:    [],
-  apiUrl:       DEFAULT_API,
+  apiUrl:       "https://phishing-detector-i0pb.onrender.com",
 };
 
-let stats = { checked: 0, phishing: 0, legitimate: 0, errors: 0 };
+let stats        = { checked: 0, phishing: 0, legitimate: 0, errors: 0 };
+let settingsLoaded = false;
 
-// Load persisted data on startup
-chrome.storage.local.get(["settings", "stats"], (data) => {
-  if (data.settings) SETTINGS = { ...SETTINGS, ...data.settings };
-  if (data.stats)    stats    = data.stats;
-  console.log("[PhishDetect] Background started. API:", SETTINGS.apiUrl);
-});
+// ── Load settings from storage on startup ─────────────────────
+function loadSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["settings", "stats"], (data) => {
+      if (data.settings) SETTINGS = { ...SETTINGS, ...data.settings };
+      if (data.stats)    stats    = data.stats;
+      settingsLoaded = true;
+      console.log("[PhishDetect] Settings loaded. API:", SETTINGS.apiUrl);
+      resolve();
+    });
+  });
+}
+
+// Always load on startup
+loadSettings();
 
 function saveStats() {
   chrome.storage.local.set({ stats });
+}
+
+// ── Get API base URL — always from storage ────────────────────
+function getApiBase() {
+  return (SETTINGS.apiUrl || "http://localhost:5000/api").replace(/\/+$/, "");
 }
 
 // ── Cache ─────────────────────────────────────────────────────
@@ -41,41 +55,35 @@ function getCached(url) {
   if (Date.now() - hit.ts > ttl) { urlCache.delete(url); return null; }
   return hit.result;
 }
+
 function setCache(url, result) {
   urlCache.set(url, { result, ts: Date.now() });
 }
 
-// ── Should we skip this URL? ──────────────────────────────────
+// ── Skip check ────────────────────────────────────────────────
 function shouldSkip(url) {
   if (!url || typeof url !== "string") return true;
-  const skip = ["chrome://","chrome-extension://","about:","file://",
-                "moz-extension://","edge://","brave://","data:","javascript:"];
+  const skip = ["chrome://", "chrome-extension://", "about:", "file://",
+                "moz-extension://", "edge://", "brave://", "data:", "javascript:"];
   if (skip.some(p => url.startsWith(p))) return true;
   if (url === "about:blank") return true;
   try {
     const h = new URL(url).hostname.toLowerCase();
-    if ((SETTINGS.whitelist || []).some(d => h === d || h.endsWith("."+d))) return true;
+    if ((SETTINGS.whitelist || []).some(d => h === d || h.endsWith("." + d))) return true;
   } catch { return true; }
   if (SETTINGS.skipHttps && url.startsWith("https://")) return true;
   return false;
 }
 
-// ── Set badge ─────────────────────────────────────────────────
+// ── Badge helpers ─────────────────────────────────────────────
 function setBadge(tabId, text, color) {
   chrome.action.setBadgeText({ tabId, text: String(text) });
   chrome.action.setBadgeBackgroundColor({ tabId, color });
 }
-
-function setBadgeScanning(tabId) {
-  setBadge(tabId, "…", "#3182ce");
-}
-
+function setBadgeScanning(tabId) { setBadge(tabId, "…", "#3182ce"); }
 function setBadgeFromResult(tabId, result) {
-  if (!result || result.api_offline) {
-    setBadge(tabId, "?", "#888888");
-    return;
-  }
-  const risk = (result.risk_level || "SAFE").toUpperCase();
+  if (!result || result.api_offline) { setBadge(tabId, "?", "#888888"); return; }
+  const risk   = (result.risk_level || "SAFE").toUpperCase();
   const colors = { SAFE:"#38a169", LOW:"#d69e2e", MEDIUM:"#ed8936", HIGH:"#e53e3e" };
   const labels = { SAFE:"✓", LOW:"!", MEDIUM:"!!", HIGH:"!!!" };
   setBadge(tabId, labels[risk] || "?", colors[risk] || "#888");
@@ -88,17 +96,29 @@ async function checkUrl(url) {
   const cached = getCached(url);
   if (cached) return cached;
 
-  const apiBase = (SETTINGS.apiUrl || DEFAULT_API).replace(/\/+$/, "");
+  // Always re-read from storage to get latest saved API URL
+  await new Promise(resolve => {
+    chrome.storage.local.get(["settings"], (data) => {
+      if (data.settings) SETTINGS = { ...SETTINGS, ...data.settings };
+      resolve();
+    });
+  });
+
+  const apiBase = getApiBase();
+  console.log("[PhishDetect] Calling API:", apiBase, "for URL:", url);
 
   try {
     const res = await fetch(`${apiBase}/predict`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ url }),
-      signal:  AbortSignal.timeout(10000),
+      signal:  AbortSignal.timeout(15000),
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text.slice(0, 100)}`);
+    }
 
     const result = await res.json();
 
@@ -121,8 +141,8 @@ async function checkUrl(url) {
   } catch (err) {
     stats.errors++;
     saveStats();
-    console.error("[PhishDetect] API error:", err.message);
-    return { error: err.message, api_offline: true };
+    console.error("[PhishDetect] API error:", err.message, "| API URL was:", apiBase);
+    return { error: err.message, api_offline: true, api_url_used: apiBase };
   }
 }
 
@@ -130,65 +150,54 @@ async function checkUrl(url) {
 async function handleNav(tabId, url) {
   if (!SETTINGS.autoScan || shouldSkip(url)) return;
 
-  console.log("[PhishDetect] Scanning:", url);
-
-  // Show scanning badge immediately
   setBadgeScanning(tabId);
-
   const result = await checkUrl(url);
-  if (!result) { setBadge(tabId, "", "#888"); return; }
+  if (!result) { setBadge(tabId, "", "#888888"); return; }
 
-  // Store for popup
   chrome.storage.local.set({
     [`result_${tabId}`]: { ...result, checked_at: Date.now(), scanned_url: url }
   });
 
-  // Update badge
   setBadgeFromResult(tabId, result);
 
-  // Banner injection
   const risk = result.risk_level || "SAFE";
   const showWarn = (risk === "HIGH" && SETTINGS.showBanner) ||
                    (risk === "MEDIUM" && SETTINGS.alertMedium && SETTINGS.showBanner);
   if (showWarn) {
     setTimeout(() => {
-      chrome.tabs.sendMessage(tabId, { type:"PHISHING_DETECTED", result })
+      chrome.tabs.sendMessage(tabId, { type: "PHISHING_DETECTED", result })
         .catch(() => {});
     }, 900);
   }
 
-  // Desktop notification
   if (risk === "HIGH" && SETTINGS.showNotif) {
     chrome.notifications.create({
       type:     "basic",
       iconUrl:  "icons/icon48.png",
       title:    "🚨 Phishing Site Detected!",
-      message:  `${url.substring(0,70)}\nRisk: ${result.phishing_probability?.toFixed(0)}%`,
+      message:  `${url.substring(0, 70)}\nRisk: ${result.phishing_probability?.toFixed(0)}%`,
       priority: 2,
     });
   }
 }
 
-// ── Navigation events ─────────────────────────────────────────
-// Every full page load
+// ── Navigation listeners ──────────────────────────────────────
 chrome.webNavigation.onCompleted.addListener((d) => {
   if (d.frameId !== 0) return;
   handleNav(d.tabId, d.url);
-}, { url: [{ schemes: ["http","https"] }] });
+}, { url: [{ schemes: ["http", "https"] }] });
 
-// SPA pushState/replaceState (React, Vue, Angular, etc)
 chrome.webNavigation.onHistoryStateUpdated.addListener((d) => {
   if (d.frameId !== 0 || !SETTINGS.scanOnChange) return;
   handleNav(d.tabId, d.url);
-}, { url: [{ schemes: ["http","https"] }] });
+}, { url: [{ schemes: ["http", "https"] }] });
 
-// Hash changes
 chrome.webNavigation.onReferenceFragmentUpdated.addListener((d) => {
   if (d.frameId !== 0 || !SETTINGS.scanOnChange) return;
   handleNav(d.tabId, d.url);
-}, { url: [{ schemes: ["http","https"] }] });
+}, { url: [{ schemes: ["http", "https"] }] });
 
-// ── Tab switch: restore badge from stored result ───────────────
+// ── Restore badge when switching tabs ─────────────────────────
 chrome.tabs.onActivated.addListener(({ tabId }) => {
   chrome.storage.local.get([`result_${tabId}`], (data) => {
     const result = data[`result_${tabId}`];
@@ -197,14 +206,14 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
   });
 });
 
-// ── Messages from popup / content script ─────────────────────
+// ── Message handler ───────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "CHECK_URL") {
     checkUrl(msg.url)
-      .then(r => sendResponse(r || { error:"No result", api_offline:true }))
-      .catch(e => sendResponse({ error: e.message, api_offline:true }));
-    return true; // keep channel open for async
+      .then(r => sendResponse(r || { error: "No result", api_offline: true }))
+      .catch(e => sendResponse({ error: e.message, api_offline: true }));
+    return true;
   }
 
   if (msg.type === "GET_RESULT") {
@@ -220,18 +229,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "RESET_STATS") {
-    stats = { checked:0, phishing:0, legitimate:0, errors:0 };
+    stats = { checked: 0, phishing: 0, legitimate: 0, errors: 0 };
     saveStats();
-    sendResponse({ ok:true });
+    sendResponse({ ok: true });
     return false;
   }
 
   if (msg.type === "SETTINGS_UPDATED") {
     SETTINGS = { ...SETTINGS, ...msg.settings };
     urlCache.clear();
-    sendResponse({ ok:true });
+    console.log("[PhishDetect] Settings updated. New API:", SETTINGS.apiUrl);
+    sendResponse({ ok: true });
     return false;
   }
 });
-
-function truncate(s, n) { return s && s.length > n ? s.slice(0,n)+"…" : (s||""); }

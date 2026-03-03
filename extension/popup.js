@@ -165,7 +165,7 @@ async function checkApi() {
   const lbl = document.getElementById("apiLabel");
   try {
     const stored = await chrome.storage.local.get(["settings"]);
-    const base   = stored.settings?.apiUrl || "http://localhost:5000/api";
+    const base   = stored.settings?.apiUrl || "https://phishing-url-detector.onrender.com/api";
     const res    = await fetch(`${base}/health`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       const d = await res.json();
