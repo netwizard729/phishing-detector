@@ -11,7 +11,7 @@ const DEFAULTS = {
   saveHistory:  false,
   sendStats:    false,
   whitelist:    [],
-  apiUrl:       "http://localhost:5000/api",
+  apiUrl:       "https://phishing-detector-i0pb.onrender.com",
 };
 
 let whitelist = [];
