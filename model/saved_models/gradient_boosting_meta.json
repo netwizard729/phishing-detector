@@ -149,6 +149,6 @@
     "has_exe_extension"
   ],
   "num_features": 46,
-  "saved_at": "2026-03-01T18:16:25.414308",
+  "saved_at": "2026-03-02T14:53:25.618875",
   "model_file": "/home/czar/Music/Phishing url detector/files/model/saved_models/gradient_boosting.pkl"
 }
