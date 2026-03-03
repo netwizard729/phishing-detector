@@ -14,7 +14,7 @@ let SETTINGS = {
   cacheDuration: 10,
   skipHttps:    false,
   whitelist:    [],
-  apiUrl:       "https://phishing-detector-i0pb.onrender.com",
+  apiUrl:       "https://phishing-detector-i0pb.onrender.com/api",
 };
 
 let stats        = { checked: 0, phishing: 0, legitimate: 0, errors: 0 };
