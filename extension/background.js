@@ -2,7 +2,7 @@
  * Background Service Worker — Phishing URL Detector v3
  * Fully fixed: proper async, auto-scan on every navigation, badge updates
  */
-const DEFAULT_API = "https://phishing-detector-i0pb.onrender.com";
+const DEFAULT_API = "https://phishing-detector-i0pb.onrender.com/api";
 
 let SETTINGS = {
   threshold:    55,
